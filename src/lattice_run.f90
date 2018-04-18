@@ -8,6 +8,7 @@ program use_lm
 
   integer :: i, j
   real(kind=rk) :: xi
+  integer :: funit
 
   logical :: do_drive, do_diffusion, do_reaction
   real(kind=rk) :: p_flip, p_move
@@ -15,8 +16,10 @@ program use_lm
   integer :: width, n_particles
   integer :: left, right, middle
   integer :: n_loops, n_inner
+  character(len=:), allocatable :: output_filename
 
   call conf%init(filename=get_character_argument(1))
+  output_filename = get_character_argument(2)
 
   do_diffusion = conf%get_l('do_diffusion')
   do_drive = conf%get_l('do_drive')
@@ -55,12 +58,16 @@ program use_lm
      end do
   end if
 
+  open(newunit=funit, file=output_filename)
+
   do i = 1, n_loops
      do j = 1, n_inner
         call l%step()
      end do
-     write(31, *) l%n
+     write(funit, *) l%n
   end do
+
+  close(funit)
 
 contains
 
