@@ -1,9 +1,14 @@
-import sys
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
+parser = argparse.ArgumentParser()
+parser.add_argument('config_file')
+parser.add_argument('data_file', nargs='+')
+args = parser.parse_args()
+
 conf = {}
-with open(sys.argv[1], 'r') as f:
+with open(args.config_file, 'r') as f:
     for l in f:
         if '=' in l:
             idx = l.find('=')
@@ -28,9 +33,15 @@ if do_drive:
 
 print(do_diffusion, do_drive, D)
 
-data = np.loadtxt('fort.31')
+m = np.loadtxt(args.data_file[0])
 
-n_bins = data.shape[1]
+for f in args.data_file[1:]:
+    data = np.loadtxt(f)
+    m += data
+
+m /= len(args.data_file)
+
+n_bins = m.shape[1]
 xr = np.arange(n_bins)
 
 def diffusion(x, x0, D, t):
@@ -38,7 +49,7 @@ def diffusion(x, x0, D, t):
     res = np.exp(-(x-x0)**2/(4*D*t))
     return res/np.sum(res)
 
-for i, step in enumerate(data):
+for i, step in enumerate(m):
     l, = plt.plot(xr, step)
     plt.plot(xr, n_particles*diffusion(xr, n_bins//2, D, n_inner*(i+1)), ls='--', color=l.get_color())
 
