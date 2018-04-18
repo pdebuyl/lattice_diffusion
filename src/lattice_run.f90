@@ -12,6 +12,7 @@ program use_lm
 
   logical :: do_drive, do_diffusion, do_reaction
   real(kind=rk) :: p_flip, p_move
+  real(kind=rk) :: k1, k2, rho_0
   integer :: n_bins, n_per_bin
   integer :: width, n_particles
   integer :: left, right, middle
@@ -28,6 +29,7 @@ program use_lm
   p_flip = conf%get_d('p_flip')
   p_move = conf%get_d('p_move')
 
+
   n_bins = conf%get_i('n_bins')
   n_per_bin = conf%get_i('n_per_bin')
 
@@ -38,7 +40,15 @@ program use_lm
   n_inner = conf%get_i('n_inner')
 
   call l%init(n_bins=n_bins, n_per_bin=n_per_bin, do_drive=do_drive, &
-       do_diffusion=do_diffusion, p_move=p_move, p_flip=p_flip)
+       do_diffusion=do_diffusion, p_move=p_move, p_flip=p_flip, &
+       do_reaction=do_reaction)
+
+  k1 = conf%get_d('k1')
+  k2 = conf%get_d('k2')
+  rho_0 = conf%get_d('rho_0')
+
+  l%k1 = k1
+  l%k2 = k2 / (2*rho_0)
 
   middle = n_bins / 2
   right = width / 2
@@ -63,6 +73,7 @@ program use_lm
   do i = 1, n_loops
      do j = 1, n_inner
         call l%step()
+        if (l%do_reaction) call l%reaction_step()
      end do
      write(funit, *) l%n
   end do

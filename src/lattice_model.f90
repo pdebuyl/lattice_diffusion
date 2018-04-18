@@ -12,10 +12,13 @@ module lattice_model
      logical :: do_drive = .false.
      logical :: do_reaction = .false.
      real(kind=rk) :: p_flip, p_move
+     real(kind=rk) :: k1, k2
    contains
      procedure :: init
      procedure :: step
      procedure :: move
+     procedure :: react
+     procedure :: reaction_step
   end type lattice_t
 
 contains
@@ -138,6 +141,82 @@ contains
     l%n_buffer(to_bin_mod) = l%n_buffer(to_bin_mod) + 1
 
   end subroutine move
+
+  subroutine reaction_step(l)
+    class(lattice_t), intent(inout) :: l
+
+    integer :: i, n_bins, r, n, n_per_bin
+
+    n_bins = size(l%n)
+
+    if (l%do_drive) then
+       n_per_bin = size(l%v, dim=1)
+    else
+       n_per_bin = 0
+    end if
+
+    do i = 1, n_bins
+       r = l%react(i)
+
+       if (r==0) cycle
+
+       if (r==1) then
+          ! create_particle
+          n = l%n(i) + 1
+          if (l%do_drive) then
+             if (n>n_per_bin) then
+                write(*,*) 'number of particles exceeded in reaction_step'
+                stop
+             end if
+             l%v(n, i) = random_flip(0.5_rk)
+          end if
+          l%n(i) = n
+       else if (r==2) then
+          ! kill 2
+          l%n(i) = l%n(i) - 2
+       end if
+
+    end do
+
+  end subroutine reaction_step
+
+  function react(l, i) result(r)
+    class(lattice_t), intent(in) :: l
+    integer, intent(in) :: i
+    integer :: r
+
+    integer :: n
+    real(kind=rk) :: xi, proba_1, proba_2
+
+    n = l%n(i)
+
+    if (n == 0) then
+       r = 0
+       return
+    end if
+
+    proba_1 = n*l%k1
+
+    if (n>1) then
+       proba_2 = n*(n-1)*l%k2
+    else
+       proba_2 = 0
+    end if
+
+    call random_number(xi)
+
+    r = 0
+    if (xi < proba_1 + proba_2) then
+       call random_number(xi)
+       xi = xi*(proba_1+proba_2)
+       if (xi < proba_1) then
+          r = 1
+       else
+          r = 2
+       end if
+    end if
+
+  end function react
 
   !> Return 1 with probability 1-proba and -1 with probability proba
   function random_flip(proba) result(r)

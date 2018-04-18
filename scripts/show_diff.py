@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 parser.add_argument('config_file')
 parser.add_argument('data_file', nargs='+')
+parser.add_argument('--show-n', action='store_true')
 args = parser.parse_args()
 
 conf = {}
@@ -52,5 +53,9 @@ def diffusion(x, x0, D, t):
 for i, step in enumerate(m):
     l, = plt.plot(xr, step)
     plt.plot(xr, n_particles*diffusion(xr, n_bins//2, D, n_inner*(i+1)), ls='--', color=l.get_color())
+
+if args.show_n:
+    plt.figure()
+    plt.plot(m.sum(axis=1))
 
 plt.show()
