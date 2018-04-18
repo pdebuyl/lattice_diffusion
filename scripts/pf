@@ -1,0 +1,15 @@
+do_diffusion = F
+do_drive = T
+do_reaction = F
+
+p_flip = 0.1
+p_move = 01
+
+n_bins = 1024
+n_per_bin = 8192
+
+n_particles = 8192
+width = 2
+
+n_loops = 5
+n_inner = 40
