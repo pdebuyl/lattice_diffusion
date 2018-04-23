@@ -11,7 +11,7 @@ program use_lm
   integer :: funit
 
   logical :: do_drive, do_diffusion, do_reaction
-  real(kind=rk) :: p_flip, p_move
+  real(kind=rk) :: p_flip, p_drive, p_move
   real(kind=rk) :: k1, k2, rho_0
   integer :: n_bins, n_per_bin
   integer :: width, n_particles
@@ -27,6 +27,7 @@ program use_lm
   do_reaction = conf%get_l('do_reaction')
 
   p_flip = conf%get_d('p_flip')
+  p_drive = conf%get_d('p_drive')
   p_move = conf%get_d('p_move')
 
 
@@ -41,6 +42,7 @@ program use_lm
 
   call l%init(n_bins=n_bins, n_per_bin=n_per_bin, do_drive=do_drive, &
        do_diffusion=do_diffusion, p_move=p_move, p_flip=p_flip, &
+       p_drive=p_drive,
        do_reaction=do_reaction)
 
   k1 = conf%get_d('k1')

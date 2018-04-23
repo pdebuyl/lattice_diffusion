@@ -11,7 +11,7 @@ module lattice_model
      logical :: do_diffusion = .false.
      logical :: do_drive = .false.
      logical :: do_reaction = .false.
-     real(kind=rk) :: p_flip, p_move
+     real(kind=rk) :: p_flip, p_drive, p_move
      real(kind=rk) :: k1, k2
    contains
      procedure :: init
@@ -23,7 +23,7 @@ module lattice_model
 
 contains
 
-  subroutine init(l, n_bins, n_per_bin, do_diffusion, do_drive, do_reaction, p_flip, p_move)
+  subroutine init(l, n_bins, n_per_bin, do_diffusion, do_drive, do_reaction, p_flip, p_drive, p_move)
     class(lattice_t), intent(out) :: l
     integer, intent(in) :: n_bins
     integer, intent(in), optional :: n_per_bin
@@ -31,6 +31,7 @@ contains
     logical, intent(in), optional :: do_drive
     logical, intent(in), optional :: do_reaction
     real(kind=rk), intent(in), optional :: p_flip
+    real(kind=rk), intent(in), optional :: p_drive
     real(kind=rk), intent(in), optional :: p_move
  
     allocate(l%n(n_bins))
@@ -47,9 +48,13 @@ contains
           if (.not. present(p_flip)) then
              stop 'p_flip absent in init'
           end if
+          if (.not. present(p_drive)) then
+             stop 'p_drive absent in init'
+          end if
           allocate(l%v(n_per_bin, n_bins))
           allocate(l%v_buffer(n_per_bin, n_bins))
           l%p_flip = p_flip
+          l%p_drive = p_drive
        end if
     end if
 
@@ -79,6 +84,7 @@ contains
     integer :: i, j
     integer :: n_bins, n_per_bin
     integer :: jump
+    real(kind=rk) :: xi
 
     n_bins = size(l%n)
     if (l%do_drive) then
@@ -90,8 +96,13 @@ contains
     do i = 1, n_bins
        do j = 1, l%n(i)
           if (l%do_drive) then
-             l%v(j,i) = l%v(j,i) * random_flip(proba=l%p_flip)
-             jump = l%v(j,i)
+             call random_number(xi)
+             if (xi < l%p_drive) then
+                l%v(j,i) = l%v(j,i) * random_flip(proba=l%p_flip)
+                jump = l%v(j,i)
+             else
+                jump = 0
+             end if
           else
              jump = 0
           end if
