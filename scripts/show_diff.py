@@ -6,6 +6,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('config_file')
 parser.add_argument('data_file', nargs='+')
 parser.add_argument('--show-n', action='store_true')
+parser.add_argument('--show-d', action='store_true')
+parser.add_argument('--show-rho0', action='store_true')
+parser.add_argument('--stride', default=1, type=int)
 args = parser.parse_args()
 
 conf = {}
@@ -19,9 +22,11 @@ with open(args.config_file, 'r') as f:
                 conf[k.strip()] = v.strip()
 
 p_flip = float(conf['p_flip'])
+p_drive = float(conf['p_drive'])
 p_move = float(conf['p_move'])
 n_inner = int(conf['n_inner'])
 n_particles = int(conf['n_particles'])
+rho_0 = int(conf['rho_0'])
 
 do_diffusion = conf['do_diffusion'] == 'T'
 do_drive = conf['do_drive'] == 'T'
@@ -30,9 +35,11 @@ D = 0
 if do_diffusion:
     D = D + 0.5*p_move
 if do_drive:
-    D = D + 0.5 + 1/(np.exp(2*p_flip)-1)
+    D = D + (0.5 + 1/(np.exp(2*p_flip)-1))*p_drive
 
-print(do_diffusion, do_drive, D)
+print("Diffusive move", do_diffusion)
+print("Driven motion", do_drive)
+print("D", D)
 
 m = np.loadtxt(args.data_file[0])
 
@@ -50,12 +57,23 @@ def diffusion(x, x0, D, t):
     res = np.exp(-(x-x0)**2/(4*D*t))
     return res/np.sum(res)
 
-for i, step in enumerate(m):
+for i, step in enumerate(m[::args.stride]):
     l, = plt.plot(xr, step)
-    plt.plot(xr, n_particles*diffusion(xr, n_bins//2, D, n_inner*(i+1)), ls='--', color=l.get_color())
+
+    if args.show_d:
+        t = n_inner*(i+1)*args.stride
+        plt.plot(xr, n_particles*diffusion(xr, n_bins//2-1/2, D, t), ls='--', color=l.get_color())
+
+if args.show_rho0:
+    plt.axhline(rho_0)
 
 if args.show_n:
+    n = m.sum(axis=1)
+    t = np.arange(len(n))*n_inner
     plt.figure()
-    plt.plot(m.sum(axis=1))
+    plt.plot(t, n)
+    fit = np.polyfit(t[len(n)//2:], n[len(n)//2:], 1)
+    plt.plot(t, np.poly1d(fit)(t))
+    print("Front velocity:", fit[0]/(2*rho_0*D))
 
 plt.show()
