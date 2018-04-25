@@ -30,6 +30,7 @@ rho_0 = int(conf['rho_0'])
 
 do_diffusion = conf['do_diffusion'] == 'T'
 do_drive = conf['do_drive'] == 'T'
+cst_bc = conf['cst_bc'] == 'T'
 
 D = 0
 if do_diffusion:
@@ -53,15 +54,15 @@ n_bins = m.shape[1]
 xr = np.arange(n_bins)
 
 def diffusion(x, x0, D, t):
-    norm_factor = 1/np.sqrt(4*np.pi*D*t)
-    res = np.exp(-(x-x0)**2/(4*D*t))
-    return res/np.sum(res)
+    norm_factor = 1/(np.sqrt(4*np.pi*D*t) * (x[1]-x[0]))
+    res = norm_factor * np.exp(-(x-x0)**2/(4*D*t))
+    return res
 
 for i, step in enumerate(m[::args.stride]):
     l, = plt.plot(xr, step)
 
     if args.show_d:
-        t = n_inner*(i+1)*args.stride
+        t = n_inner * (1+i*args.stride)
         plt.plot(xr, n_particles*diffusion(xr, n_bins//2-1/2, D, t), ls='--', color=l.get_color())
 
 if args.show_rho0:
@@ -69,11 +70,15 @@ if args.show_rho0:
 
 if args.show_n:
     n = m.sum(axis=1)
-    t = np.arange(len(n))*n_inner
+    t = (np.arange(len(n))+1)*n_inner
     plt.figure()
     plt.plot(t, n)
     fit = np.polyfit(t[len(n)//2:], n[len(n)//2:], 1)
     plt.plot(t, np.poly1d(fit)(t))
-    print("Front velocity:", fit[0]/(2*rho_0*D))
+    vel = fit[0]/(rho_0*D)
+    if not cst_bc:
+        vel /= 2
+    print("Front velocity          :", vel)
+    print("Front velocity / sqrt(2):", vel/np.sqrt(2))
 
 plt.show()
