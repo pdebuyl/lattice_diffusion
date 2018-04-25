@@ -8,9 +8,11 @@ module lattice_model
      integer, allocatable :: n_buffer(:)
      integer, allocatable :: v(:,:)
      integer, allocatable :: v_buffer(:,:)
+     integer :: rho_0
      logical :: do_diffusion = .false.
      logical :: do_drive = .false.
      logical :: do_reaction = .false.
+     logical :: cst_bc = .false.
      real(kind=rk) :: p_flip, p_drive, p_move
      real(kind=rk) :: k1, k2
    contains
@@ -83,7 +85,7 @@ contains
 
     integer :: i, j
     integer :: n_bins, n_per_bin
-    integer :: jump
+    integer :: jump, old_n1
     real(kind=rk) :: xi
 
     n_bins = size(l%n)
@@ -122,6 +124,20 @@ contains
 
     l%n_buffer = 0
 
+    if (l%cst_bc) then
+       old_n1 = l%n(1)
+       l%n(1) = l%rho_0
+
+       ! Generate -1, 1 initial velocities for the new particles
+       if (l%do_drive) then
+          if (old_n1 < l%rho_0) then
+             do i = old_n1+1, l%rho_0
+                l%v(i, 1) = random_flip(proba=0.5_rk)
+             end do
+          end if
+       end if
+    end if
+
   end subroutine step
 
   !> Move a single particle to a new bin (in the buffer bin)
@@ -134,6 +150,11 @@ contains
     integer :: n_bins, n_per_bin, idx, to_bin_mod
 
     n_bins = size(l%n)
+
+    ! If the boundary condition is constant on the left, drop
+    ! outgoing particles
+    if (l%cst_bc .and. &
+         ((to_bin <=0 ) .or. (to_bin > n_bins))) return
 
     to_bin_mod = modulo(to_bin - 1, n_bins) + 1
 

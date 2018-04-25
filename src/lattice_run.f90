@@ -12,7 +12,7 @@ program use_lm
 
   logical :: do_drive, do_diffusion, do_reaction
   real(kind=rk) :: p_flip, p_drive, p_move
-  real(kind=rk) :: k1, k2, rho_0
+  real(kind=rk) :: k1, k2
   integer :: n_bins, n_per_bin
   integer :: width, n_particles
   integer :: left, right, middle
@@ -42,23 +42,31 @@ program use_lm
 
   call l%init(n_bins=n_bins, n_per_bin=n_per_bin, do_drive=do_drive, &
        do_diffusion=do_diffusion, p_move=p_move, p_flip=p_flip, &
-       p_drive=p_drive,
+       p_drive=p_drive, &
        do_reaction=do_reaction)
 
   k1 = conf%get_d('k1')
   k2 = conf%get_d('k2')
-  rho_0 = conf%get_d('rho_0')
+  l%rho_0 = conf%get_d('rho_0')
+  l%cst_bc = conf%get_l('cst_bc')
 
   l%k1 = k1
-  l%k2 = k2 / (2*rho_0)
+  l%k2 = k2 / (2*l%rho_0)
 
-  middle = n_bins / 2
-  right = width / 2
-  left = width - 1 - right
-  l%n(middle-left:middle+right) = n_particles/width
+  if (l%cst_bc) then
+     left = 1
+     right = width
+     l%n(1:width) = n_particles/width
+  else
+     middle = n_bins / 2
+     right = middle + width / 2
+     left = middle - (width - 1 - width/2)
+  end if
+
+  l%n(left:right) = n_particles/width
 
   if (do_drive) then
-     do i = middle-left, middle+right
+     do i = left, right
         do j = 1, l%n(i)
            call random_number(xi)
            if (xi > 0.5_rk) then
