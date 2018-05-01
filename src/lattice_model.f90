@@ -13,7 +13,8 @@ module lattice_model
      logical :: do_drive = .false.
      logical :: do_reaction = .false.
      logical :: cst_bc = .false.
-     real(kind=rk) :: p_flip, p_drive, p_move
+     real(kind=rk) :: p_flip, p_drive
+     real(kind=rk) :: dt
      real(kind=rk) :: k1, k2
    contains
      procedure :: init
@@ -25,7 +26,7 @@ module lattice_model
 
 contains
 
-  subroutine init(l, n_bins, n_per_bin, do_diffusion, do_drive, do_reaction, p_flip, p_drive, p_move)
+  subroutine init(l, n_bins, n_per_bin, do_diffusion, do_drive, do_reaction, p_flip, p_drive, dt)
     class(lattice_t), intent(out) :: l
     integer, intent(in) :: n_bins
     integer, intent(in), optional :: n_per_bin
@@ -34,12 +35,14 @@ contains
     logical, intent(in), optional :: do_reaction
     real(kind=rk), intent(in), optional :: p_flip
     real(kind=rk), intent(in), optional :: p_drive
-    real(kind=rk), intent(in), optional :: p_move
+    real(kind=rk), intent(in) :: dt
  
     allocate(l%n(n_bins))
     l%n = 0
     allocate(l%n_buffer(n_bins))
     l%n_buffer = 0
+
+    l%dt = dt
 
     if (present(do_drive)) then
        if (do_drive) then
@@ -63,10 +66,6 @@ contains
     if (present(do_diffusion)) then
        if (do_diffusion) then
           l%do_diffusion = do_diffusion
-          if (.not. present(p_move)) then
-             stop 'p_move absent in init'
-          end if
-          l%p_move = p_move
        end if
     end if
 
@@ -109,7 +108,7 @@ contains
              jump = 0
           end if
           if (l%do_diffusion) then
-             jump = jump + random_step(proba=l%p_move)
+             jump = jump + random_step(dt=l%dt)
           end if
 
           call l%move(i, j, i + jump)
@@ -227,10 +226,10 @@ contains
        return
     end if
 
-    proba_1 = n*l%k1
+    proba_1 = n*l%k1*l%dt
 
     if (n>1) then
-       proba_2 = n*(n-1)*l%k2
+       proba_2 = n*(n-1)*l%k2*l%dt/2
     else
        proba_2 = 0
     end if
@@ -268,21 +267,18 @@ contains
   end function random_flip
 
   !> Return +/- 1 with probability proba and 0 with probability 1-proba
-  function random_step(proba) result(r)
-    real(kind=rk), intent(in) :: proba
+  function random_step(dt) result(r)
+    real(kind=rk), intent(in) :: dt
     integer :: r
 
     real(kind=rk) :: xi
 
     call random_number(xi)
 
-    if (xi < proba) then
-       call random_number(xi)
-       if (xi < 0.5_rk) then
-          r = -1
-       else
-          r = 1
-       end if
+    if (xi < dt) then
+       r = 1
+    else if (xi < 2*dt) then
+       r = -1
     else
        r = 0
     end if

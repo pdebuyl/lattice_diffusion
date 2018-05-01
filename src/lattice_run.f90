@@ -11,7 +11,7 @@ program use_lm
   integer :: funit
 
   logical :: do_drive, do_diffusion, do_reaction
-  real(kind=rk) :: p_flip, p_drive, p_move
+  real(kind=rk) :: p_flip, p_drive
   real(kind=rk) :: k1, k2
   integer :: n_bins, n_per_bin
   integer :: width, n_particles
@@ -28,8 +28,6 @@ program use_lm
 
   p_flip = conf%get_d('p_flip')
   p_drive = conf%get_d('p_drive')
-  p_move = conf%get_d('p_move')
-
 
   n_bins = conf%get_i('n_bins')
   n_per_bin = conf%get_i('n_per_bin')
@@ -41,8 +39,9 @@ program use_lm
   n_inner = conf%get_i('n_inner')
 
   call l%init(n_bins=n_bins, n_per_bin=n_per_bin, do_drive=do_drive, &
-       do_diffusion=do_diffusion, p_move=p_move, p_flip=p_flip, &
+       do_diffusion=do_diffusion, p_flip=p_flip, &
        p_drive=p_drive, &
+       dt=conf%get_d('dt'), &
        do_reaction=do_reaction)
 
   k1 = conf%get_d('k1')
@@ -51,7 +50,7 @@ program use_lm
   l%cst_bc = conf%get_l('cst_bc')
 
   l%k1 = k1
-  l%k2 = k2 / (2*l%rho_0)
+  l%k2 = k2 / l%rho_0
 
   if (l%cst_bc) then
      left = 1
