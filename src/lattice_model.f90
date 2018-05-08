@@ -204,7 +204,7 @@ contains
           l%n(i) = n
        else if (r==2) then
           ! kill 2
-          l%n(i) = l%n(i) - 2
+          l%n(i) = l%n(i) - 1
        end if
 
     end do
@@ -229,7 +229,7 @@ contains
     proba_1 = n*l%k1*l%dt
 
     if (n>1) then
-       proba_2 = n*(n-1)*l%k2*l%dt/2
+       proba_2 = n*(n-1)*l%k2*l%dt
     else
        proba_2 = 0
     end if
