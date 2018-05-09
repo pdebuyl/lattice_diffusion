@@ -84,7 +84,7 @@ program use_lm
         call l%step()
         if (l%do_reaction) call l%reaction_step()
      end do
-     write(funit, *) l%n
+     write(funit, '(*(i5))') l%n
   end do
 
   close(funit)
