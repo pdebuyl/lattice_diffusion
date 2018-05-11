@@ -1,0 +1,3 @@
+[submodule "random_module"]
+	path = random_module
+	url = https://github.com/pdebuyl/random_module

@@ -18,6 +18,8 @@ program use_lm
   integer :: left, right, middle
   integer :: n_loops, n_inner
   character(len=:), allocatable :: output_filename
+  character(len=:), allocatable :: seed_argument
+  integer(kind=c_int64_t) :: seed
 
   call conf%init(filename=get_character_argument(1))
   output_filename = get_character_argument(2)
@@ -43,6 +45,11 @@ program use_lm
        p_drive=p_drive, &
        dt=conf%get_d('dt'), &
        do_reaction=do_reaction)
+
+  seed_argument = get_character_argument(3)
+  read(seed_argument, *) seed
+
+  call threefry_rng_init(l%rng, seed)
 
   k1 = conf%get_d('k1')
   k2 = conf%get_d('k2')
