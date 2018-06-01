@@ -1,9 +1,14 @@
 module lattice_model
   use, intrinsic :: iso_c_binding
-  use threefry_module
+  use xoroshiro128plus_m
   implicit none
 
+  private
+
+  public :: rk, xoro_state, lattice_t
+
   integer, parameter :: rk = selected_real_kind(12)
+  integer(kind=c_int64_t) :: xoro_state(2)
 
   type lattice_t
      integer, allocatable :: n(:)
@@ -18,7 +23,6 @@ module lattice_model
      real(kind=rk) :: p_flip, p_drive
      real(kind=rk) :: dt
      real(kind=rk) :: k1, k2
-     type(threefry_rng_t) :: rng
    contains
      procedure :: init
      procedure :: step
@@ -100,9 +104,9 @@ contains
     do i = 1, n_bins
        do j = 1, l%n(i)
           if (l%do_drive) then
-             xi = threefry_double(l%rng)
+             xi = next_double(xoro_state)
              if (xi < l%p_drive) then
-                l%v(j,i) = l%v(j,i) * random_flip(proba=l%p_flip, state=l%rng)
+                l%v(j,i) = l%v(j,i) * random_flip(proba=l%p_flip)
                 jump = l%v(j,i)
              else
                 jump = 0
@@ -111,7 +115,7 @@ contains
              jump = 0
           end if
           if (l%do_diffusion) then
-             jump = jump + random_step(dt=l%dt, state=l%rng)
+             jump = jump + random_step(dt=l%dt)
           end if
 
           call l%move(i, j, i + jump)
@@ -134,7 +138,7 @@ contains
        if (l%do_drive) then
           if (old_n1 < l%rho_0) then
              do i = old_n1+1, l%rho_0
-                l%v(i, 1) = random_flip(proba=0.5_rk, state=l%rng)
+                l%v(i, 1) = random_flip(proba=0.5_rk)
              end do
           end if
        end if
@@ -202,7 +206,7 @@ contains
                 write(*,*) 'number of particles exceeded in reaction_step'
                 stop
              end if
-             l%v(n, i) = random_flip(0.5_rk, state=l%rng)
+             l%v(n, i) = random_flip(0.5_rk)
           end if
           l%n(i) = n
        else if (r==2) then
@@ -237,11 +241,11 @@ contains
        proba_2 = 0
     end if
 
-    xi = threefry_double(l%rng)
+    xi = next_double(xoro_state)
 
     r = 0
     if (xi < proba_1 + proba_2) then
-       xi = threefry_double(l%rng)*(proba_1+proba_2)
+       xi = next_double(xoro_state)*(proba_1+proba_2)
        if (xi < proba_1) then
           r = 1
        else
@@ -252,14 +256,13 @@ contains
   end function react
 
   !> Return 1 with probability 1-proba and -1 with probability proba
-  function random_flip(proba, state) result(r)
+  function random_flip(proba) result(r)
     real(kind=rk), intent(in) :: proba
-    type(threefry_rng_t), intent(inout) :: state
     integer :: r
 
     real(kind=rk) :: xi
 
-    xi = threefry_double(state)
+    xi = next_double(xoro_state)
 
     if (xi < proba) then
        r = -1
@@ -270,14 +273,13 @@ contains
   end function random_flip
 
   !> Return +/- 1 with probability proba and 0 with probability 1-proba
-  function random_step(dt, state) result(r)
+  function random_step(dt) result(r)
     real(kind=rk), intent(in) :: dt
-    type(threefry_rng_t), intent(inout) :: state
     integer :: r
 
     real(kind=rk) :: xi
 
-    xi = threefry_double(state)
+    xi = next_double(xoro_state)
 
     if (xi < dt) then
        r = 1

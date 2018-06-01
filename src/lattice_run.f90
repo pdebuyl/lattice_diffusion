@@ -19,10 +19,12 @@ program use_lm
   integer :: n_loops, n_inner
   character(len=:), allocatable :: output_filename
   character(len=:), allocatable :: seed_argument
-  integer(kind=c_int64_t) :: seed
 
   call conf%init(filename=get_character_argument(1))
   output_filename = get_character_argument(2)
+
+  xoro_state(1) = get_int64_argument(3)
+  xoro_state(2) = get_int64_argument(4)
 
   do_diffusion = conf%get_l('do_diffusion')
   do_drive = conf%get_l('do_drive')
@@ -45,11 +47,6 @@ program use_lm
        p_drive=p_drive, &
        dt=conf%get_d('dt'), &
        do_reaction=do_reaction)
-
-  seed_argument = get_character_argument(3)
-  read(seed_argument, *) seed
-
-  call threefry_rng_init(l%rng, seed)
 
   k1 = conf%get_d('k1')
   k2 = conf%get_d('k2')
@@ -113,5 +110,22 @@ contains
     arg = trim(r)
 
   end function get_character_argument
+
+  !> Return the position-th command-line argument as an integer
+  function get_int64_argument(position) result(arg)
+    use, intrinsic :: iso_c_binding
+    integer, intent(in) :: position
+    integer(kind=c_int64_t) :: arg
+    character(len=128) :: r
+
+    if (command_argument_count() < position) then
+       stop 'missing argument for parameter file'
+    end if
+
+    call get_command_argument(position, r)
+
+    read(r, *) arg
+
+  end function get_int64_argument
 
 end program use_lm
