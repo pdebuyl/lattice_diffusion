@@ -119,7 +119,7 @@ contains
     character(len=128) :: r
 
     if (command_argument_count() < position) then
-       stop 'missing argument for parameter file'
+       stop 'missing argument for seed'
     end if
 
     call get_command_argument(position, r)
